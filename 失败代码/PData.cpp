@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 // 仅保留 Connector/C++ 核心头文件，无任何 C API 痕迹
-#include <mysql/jdbc.h>
+#include <mysql\jdbc.h>
 
 // 命名空间简化代码，适配 Connector/C++
 using namespace std;
@@ -185,7 +185,7 @@ vector<Employee> getAllEmployees(Connection* conn) {
     return employees;
 }
 
-// 根据 ID 查询人员（Connector/C++ 实现，保持原有功能）
+// 补全：根据 ID 查询人员（Connector/C++ 实现，保持原有功能）
 Employee getEmployeeById(Connection* conn, int employeeId) {
     Employee emp = {0, "", 0, ""};
     if (!conn) {
@@ -198,96 +198,105 @@ Employee getEmployeeById(Connection* conn, int employeeId) {
                      "FROM employees e JOIN positions p ON e.position_id = p.position_id "
                      "WHERE e.employee_id = ?";
         unique_ptr<PreparedStatement> pstmt(conn->prepareStatement(sql));
-        pstmt->setInt(1, employeeId);
-        unique_ptr<ResultSet> res(pstmt->executeQuery());
+        pstmt->setInt(1, employeeId); // 绑定查询参数（人员ID）
+        unique_ptr<ResultSet> res(pstmt->executeQuery()); // 执行查询
 
+        // 如果查询到结果，赋值给 Employee 结构体
         if (res->next()) {
             emp.id = res->getInt("employee_id");
             emp.name = res->getString("employee_name");
             emp.positionId = res->getInt("position_id");
             emp.positionName = res->getString("position_name");
+        } else {
+            cout << "未查询到 ID 为 " << employeeId << " 的人员信息" << endl;
         }
     } catch (SQLException& e) {
-        cerr << "查询人员失败：" << e.what() << endl;
+        cerr << "根据 ID 查询人员失败：" << e.what() << endl;
     }
 
     return emp;
 }
 
-// 打印人员列表（保持原有格式不变）
-void printEmployees(const vector<Employee>& employees) {
-    cout << "\n========= 人员列表 =========" << endl;
-    cout << "ID | 姓名 | 职务ID | 职务名称" << endl;
-    cout << "---------------------------" << endl;
-    for (const auto& emp : employees) {
-        cout << emp.id << " | " << emp.name << " | " << emp.positionId << " | " << emp.positionName << endl;
-    }
-    cout << "===========================" << endl;
-}
-
-// 打印职务列表（保持原有格式不变）
-void printPositions(const vector<Position>& positions) {
-    cout << "\n========= 职务列表 =========" << endl;
-    cout << "ID | 职务名称" << endl;
-    cout << "------------" << endl;
-    for (const auto& pos : positions) {
-        cout << pos.id << " | " << pos.name << endl;
-    }
-    cout << "===========================" << endl;
-}
-
-int main() {
-    cout << "正在初始化数据库连接..." << endl;
-
-    // 1. 获取 Connector/C++ 数据库连接（无 C API 相关代码）
-    auto conn = getMySQLConnection();
+// 补充：删除人员（Connector/C++ 实现，完成「删」的功能）
+bool deleteEmployee(Connection* conn, int employeeId) {
     if (!conn) {
+        cerr << "无效的数据库连接！" << endl;
+        return false;
+    }
+
+    try {
+        string sql = "DELETE FROM employees WHERE employee_id = ?";
+        unique_ptr<PreparedStatement> pstmt(conn->prepareStatement(sql));
+        pstmt->setInt(1, employeeId); // 绑定删除参数（人员ID）
+        int affectedRows = pstmt->executeUpdate(); // 执行删除，返回受影响的行数
+
+        if (affectedRows > 0) {
+            cout << "人员删除成功，ID：" << employeeId << endl;
+            return true;
+        } else {
+            cout << "未找到 ID 为 " << employeeId << " 的人员，删除失败" << endl;
+            return false;
+        }
+    } catch (SQLException& e) {
+        cerr << "删除人员失败：" << e.what() << endl;
+        return false;
+    }
+}
+
+// 辅助函数：打印所有职务（方便测试）
+void printAllPositions(Connection* conn) {
+    vector<Position> positions = getAllPositions(conn);
+    cout << "\n===== 所有职务列表 =====" << endl;
+    for (const auto& pos : positions) {
+        cout << "职务ID：" << pos.id << "，职务名称：" << pos.name << endl;
+    }
+}
+
+// 辅助函数：打印所有人员（方便测试）
+void printAllEmployees(Connection* conn) {
+    vector<Employee> employees = getAllEmployees(conn);
+    cout << "\n===== 所有人员列表 =====" << endl;
+    for (const auto& emp : employees) {
+        cout << "人员ID：" << emp.id << "，姓名：" << emp.name 
+             << "，职务ID：" << emp.positionId << "，职务名称：" << emp.positionName << endl;
+    }
+}
+
+// 主函数：测试所有增删改查功能
+int main() {
+    // 1. 获取数据库连接
+    unique_ptr<Connection> conn = getMySQLConnection();
+    if (!conn) {
+        cerr << "数据库连接初始化失败，程序退出！" << endl;
         return 1;
     }
-
     cout << "数据库连接成功！" << endl;
 
-    // 2. 适配 9.6 版本：查询 MySQL 服务器版本（替代无效的 getServerVersion()）
-    unique_ptr<Statement> version_stmt(conn->createStatement());
-    unique_ptr<ResultSet> version_res(version_stmt->executeQuery("SELECT VERSION()"));
-    if (version_res->next()) {
-        cout << "MySQL 服务器版本：" << version_res->getString(1) << endl;
-    }
+    // 2. 测试：添加职务
+    addPosition(conn.get(), "软件工程师");
+    addPosition(conn.get(), "产品经理");
+    printAllPositions(conn.get());
 
-    // 3. 测试添加职务
-    addPosition(conn.get(), "经理");
-    addPosition(conn.get(), "工程师");
-    addPosition(conn.get(), "设计师");
-    addPosition(conn.get(), "销售员");
-
-    // 4. 打印职务列表
-    vector<Position> positions = getAllPositions(conn.get());
-    printPositions(positions);
-
-    // 5. 测试添加人员
+    // 3. 测试：添加人员（假设职务ID 1 是软件工程师，ID 2 是产品经理）
     addEmployee(conn.get(), "张三", 1);
     addEmployee(conn.get(), "李四", 2);
-    addEmployee(conn.get(), "王五", 2);
-    addEmployee(conn.get(), "赵六", 3);
+    printAllEmployees(conn.get());
 
-    // 6. 打印所有人员
-    vector<Employee> employees = getAllEmployees(conn.get());
-    printEmployees(employees);
+    // 4. 测试：根据 ID 查询人员（查询 ID=1 的人员）
+    Employee emp1 = getEmployeeById(conn.get(), 1);
+    if (emp1.id != 0) {
+        cout << "\n===== 单个人员查询结果 =====" << endl;
+        cout << "人员ID：" << emp1.id << "，姓名：" << emp1.name 
+             << "，职务ID：" << emp1.positionId << "，职务名称：" << emp1.positionName << endl;
+    }
 
-    // 7. 测试修改人员信息
-    updateEmployee(conn.get(), 1, "张三(经理)", 1);
+    // 5. 测试：更新人员信息（将 ID=1 的人员改为「张三丰」，职务ID=2）
+    updateEmployee(conn.get(), 1, "张三丰", 2);
+    printAllEmployees(conn.get());
 
-    // 8. 测试根据 ID 查询人员
-    Employee emp = getEmployeeById(conn.get(), 1);
-    cout << "\n查询到的人员信息：" << emp.name << " - " << emp.positionName << endl;
-
-    // 9. 再次打印所有数据
-    employees = getAllEmployees(conn.get());
-    printPositions(positions);
-    printEmployees(employees);
-
-    // 10. 资源自动释放（智能指针，无需手动关闭，适配 Connector/C++）
-    cout << "\n数据库连接已自动释放，程序运行结束。" << endl;
+    // 6. 测试：删除人员（删除 ID=2 的人员）
+    deleteEmployee(conn.get(), 2);
+    printAllEmployees(conn.get());
 
     return 0;
 }
