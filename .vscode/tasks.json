@@ -7,15 +7,12 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
+                "-Wall", // 新增：开启所有编译警告，方便调试
                 "${file}",
-                // 1. 指定9.6版本头文件目录（和c_cpp_properties.json一致）
                 "-I", "C:\\Program Files\\MySQL\\MySQL Connector C++ 9.6\\include",
-                // 2. 指定9.6版本库文件目录（指向lib64/vs14）
                 "-L", "C:\\Program Files\\MySQL\\MySQL Connector C++ 9.6\\lib64\\vs14",
-                // 3. 链接9.6版本专属库（必须是mysqlcppconn9，不能多/少字符）
-                "-lmysqlcppconn9",
-                // 4. 输出exe文件，路径分隔符修正
-                "-o", "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "-lmysqlcppconn", // 修改：合并 -l 和库名，消除兼容性风险
+                "-o", "${fileDirname}\\${fileBasenameNoExtension}.exe" // 修改：删除末尾多余逗号
             ],
             "options": {
                 "cwd": "${fileDirname}"
