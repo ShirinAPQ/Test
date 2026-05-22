@@ -1,14 +1,14 @@
 #include <windows.h>
 #include <iostream>
 
-HANDLE hSemaphore; // 信号量句柄
+HANDLE hSemaphore; 
 
 
 
 // 子线程函数
 DWORD WINAPI ChildThreadProc(LPVOID lpParameter) {
     std::cout << "子线程：开始执行任务..." << std::endl;
-    Sleep(2000); // 模拟耗时操作（2秒）
+    Sleep(2000); 
     std::cout << "子线程：任务执行完毕，准备唤醒父线程" << std::endl;
 
     // 释放信号量，唤醒等待的父线程
@@ -20,7 +20,6 @@ int main() {
 
     std::cout << "计算机25-5齐浩凯2404010526" << std::endl;
 
-    // 创建初始值为0、最大值为1的信号量
     hSemaphore = CreateSemaphore(NULL, 0, 1, NULL);
     if (hSemaphore == NULL) {
         std::cerr << "创建信号量失败！错误码：" << GetLastError() << std::endl;

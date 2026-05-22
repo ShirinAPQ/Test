@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <iostream>
 
-CRITICAL_SECTION cs; // 临界区对象
+CRITICAL_SECTION cs; 
 int count = 0;        // 全局共享变量
 
 // 线程1函数
@@ -10,7 +10,7 @@ DWORD WINAPI Thread1Proc(LPVOID lpParameter) {
         EnterCriticalSection(&cs); // 进入临界区
         count++;
         std::cout << "线程1：count = " << count << std::endl;
-        Sleep(500); // 模拟操作耗时
+        Sleep(500);
         LeaveCriticalSection(&cs); // 退出临界区
     }
     return 0;
@@ -22,7 +22,7 @@ DWORD WINAPI Thread2Proc(LPVOID lpParameter) {
         EnterCriticalSection(&cs); // 进入临界区
         count++;
         std::cout << "线程2：count = " << count << std::endl;
-        Sleep(500); // 模拟操作耗时
+        Sleep(500);
         LeaveCriticalSection(&cs); // 退出临界区
     }
     return 0;
@@ -31,8 +31,7 @@ DWORD WINAPI Thread2Proc(LPVOID lpParameter) {
 int main() {
 
     std::cout << "计算机25-5齐浩凯2404010526" << std::endl;
-    
-    // 初始化临界区
+
     InitializeCriticalSection(&cs);
 
     std::cout << "主线程：创建两个子线程..." << std::endl;
